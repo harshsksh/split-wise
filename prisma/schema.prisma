@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  email        String   @unique
+  username     String   @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  // Relationships
+  groupMemberships GroupMember[]
+  expenses    Expense[]
+  expenseSplits ExpenseSplit[]
+  settlementsFrom Settlement[] @relation("SettlementFrom")
+  settlementsTo   Settlement[] @relation("SettlementTo")
+  createdGroups Group[] @relation("GroupCreator")
+  friends     Friend[] @relation("UserFriends")
+  friendOf    Friend[] @relation("FriendOf")
+}
+
+model Group {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relationships
+  creatorId   String   @db.ObjectId
+  creator     User     @relation("GroupCreator", fields: [creatorId], references: [id])
+  members     GroupMember[]
+  expenses   Expense[]
+  settlements Settlement[]
+}
+
+model GroupMember {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  groupId   String   @db.ObjectId
+  joinedAt  DateTime @default(now())
+  isAdmin   Boolean  @default(false)
+  
+  // Relationships
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, groupId])
+}
+
+model Expense {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String?
+  amount      Float
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relationships
+  paidById   String   @db.ObjectId
+  paidBy     User     @relation(fields: [paidById], references: [id])
+  groupId    String   @db.ObjectId
+  group      Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  splits     ExpenseSplit[]
+}
+
+model ExpenseSplit {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  expenseId  String   @db.ObjectId
+  userId     String   @db.ObjectId
+  amount     Float
+  percentage Float?
+  isPaid     Boolean  @default(false)
+  
+  // Relationships
+  expense    Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+  
+  @@unique([expenseId, userId])
+}
+
+model Settlement {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  fromUserId    String   @db.ObjectId
+  toUserId      String   @db.ObjectId
+  groupId       String   @db.ObjectId
+  amount        Float
+  status        SettlementStatus @default(PENDING)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  settledAt     DateTime?
+  
+  // Relationships
+  fromUser      User     @relation("SettlementFrom", fields: [fromUserId], references: [id])
+  toUser        User     @relation("SettlementTo", fields: [toUserId], references: [id])
+  group         Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+}
+
+model Friend {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  friendId  String   @db.ObjectId
+  createdAt DateTime @default(now())
+  
+  // Relationships
+  user      User     @relation("UserFriends", fields: [userId], references: [id], onDelete: Cascade)
+  friend    User     @relation("FriendOf", fields: [friendId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, friendId])
+}
+
+enum SettlementStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
