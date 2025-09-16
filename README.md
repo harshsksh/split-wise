@@ -8,9 +8,7 @@ Modern split‑expense platform built with Next.js 15, React 19, Prisma, and Mon
 - Clear code you can extend on day one; fast feedback loop and documentation
 
 ### Live demo & access
-- Demo: add your deployment URL
-- Test user: add a seeded user or register quickly
-- Screenshots: add 2–3 images (Dashboard, Add Expense, Settlements)
+- Demo: split-wise-two.vercel.app
 
 ---
 
